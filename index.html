@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lingot - Language Translator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* Body */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #fefefe;
+  transition: background 0.3s ease, color 0.3s ease;
+  color: #111;
+}
+
+/* App container */
+.translator-app {
+  width: 400px;
+  max-width: 90%;
+  padding: 25px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  background: transparent;
+}
+
+/* Title */
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Input container for refresh button */
+.input-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+/* Textareas and output */
+textarea, .output, select, button {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  border: none;
+  padding: 12px;
+  font-size: 16px;
+  outline: none;
+  background: #fefefe;
+  color: #111;
+}
+
+textarea {
+  padding-right: 45px; /* space for refresh button */
+}
+
+.output {
+  margin-bottom: 15px;
+}
+
+/* Controls */
+.controls {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.controls select {
+  width: 48%;
+  background: #fefefe;
+}
+
+/* Swap button */
+.swap-btn {
+  font-size: 20px;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Button row */
+.button-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.button-row button {
+  flex: 1;
+  cursor: pointer;
+  background: #fefefe;
+  color: #111;
+  font-weight: 600;
+}
+.button-row button:hover {
+  opacity: 0.8;
+}
+
+/* Dark mode toggle */
+.dark-mode-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  background: #fefefe;
+  color: #111;
+}
+
+/* Refresh button */
+.refresh-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: #ddd;        /* visible in light mode */
+  color: #111;
+  cursor: pointer;
+  font-size: 18px;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+.refresh-btn:hover {
+  background: #bbb;
+}
+
+/* Dark mode refresh button */
+body.dark .refresh-btn {
+  background: #333;
+  color: #fefefe;
+}
+body.dark .refresh-btn:hover {
+  background: #555;
+}
+
+/* Footer */
+.footer {
+  font-size: 12px;
+  color: #888;
+  text-align: center;
+  margin-top: 10px;
+}
+
+/* Dark mode */
+body.dark {
+  background: #111;
+  color: #fefefe;
+}
+body.dark textarea,
+body.dark select,
+body.dark .output,
+body.dark button,
+body.dark .dark-mode-btn {
+  background: #111;
+  color: #fefefe;
+}
+
+/* Responsive */
+@media (max-width: 420px) {
+  .translator-app { width: 90%; padding: 20px; }
+  .controls select { width: 45%; }
+}
+</style>
+</head>
+<body>
+<div class="translator-app">
+  <div class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()">🌙</div>
+  <div class="title">🌍 Lingot</div>
+
+  <div class="input-container">
+    <textarea id="inputText" placeholder="Enter text to translate..."></textarea>
+    <button class="refresh-btn" onclick="clearInput()">⟲</button>
+  </div>
+
+  <div class="controls">
+    <select id="sourceLang"></select>
+    <span class="swap-btn" onclick="swapLanguages()">🔄</span>
+    <select id="targetLang"></select>
+  </div>
+
+  <button onclick="translateText()">Translate</button>
+
+  <div class="output" id="translatedText">Translation appears here...</div>
+
+  <div class="button-row">
+    <button onclick="copyText()">Copy</button>
+    <button onclick="saveToFile()">Save</button>
+    <button onclick="clearOutput()">Clear</button>
+  </div>
+
+  <div class="footer">© Lingot 2025</div>
+</div>
+
+<script>
+// Languages
+const languages = {
+  auto:'Auto Detect', en:'English', es:'Spanish', fr:'French', de:'German', hi:'Hindi', bn:'Bengali',
+  mr:'Marathi', ta:'Tamil', te:'Telugu', gu:'Gujarati', kn:'Kannada', ml:'Malayalam', pa:'Punjabi',
+  or:'Oriya', as:'Assamese', mai:'Maithili', sat:'Santali', ks:'Kashmiri', kok:'Konkani', mni:'Manipuri',
+  ne:'Nepali', sd:'Sindhi', doi:'Dogri', brx:'Bodo', sa:'Sanskrit', ur:'Urdu', zh:'Chinese', ja:'Japanese'
+};
+
+const sourceSelect = document.getElementById('sourceLang');
+const targetSelect = document.getElementById('targetLang');
+for(const code in languages){
+  sourceSelect.add(new Option(languages[code], code));
+  targetSelect.add(new Option(languages[code], code));
+}
+targetSelect.value = 'en';
+
+// Functions
+async function translateText() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+
+  const source = sourceSelect.value === 'auto' ? 'en' : sourceSelect.value;
+  const target = targetSelect.value;
+  const output = document.getElementById('translatedText');
+  output.innerText = '⏳ Translating...';
+
+  const chunkSize = 500; // MyMemory free API limit
+  const chunks = [];
+
+  for (let i = 0; i < text.length; i += chunkSize) {
+    chunks.push(text.slice(i, i + chunkSize));
+  }
+
+  let translatedText = '';
+
+  try {
+    for (const chunk of chunks) {
+      const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=${source}|${target}`);
+      const data = await response.json();
+      translatedText += data.responseData.translatedText;
+    }
+    output.innerText = translatedText;
+  } catch (err) {
+    output.innerText = '⚠️ Error translating';
+  }
+}
+
+function swapLanguages() {
+  const temp = sourceSelect.value;
+  sourceSelect.value = targetSelect.value;
+  targetSelect.value = temp;
+}
+
+function copyText() {
+  const text = document.getElementById('translatedText').innerText;
+  if(text) navigator.clipboard.writeText(text).then(()=>alert('Copied ✅'));
+}
+
+function saveToFile() {
+  const text = document.getElementById('translatedText').innerText;
+  if(!text) return alert('Nothing to save!');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'translation.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function clearOutput() {
+  document.getElementById('translatedText').innerText = '';
+}
+
+function clearInput() {
+  document.getElementById('inputText').value = '';
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+  document.getElementById('darkModeBtn').innerText = document.body.classList.contains('dark') ? '☀️' : '🌙';
+}
+</script>
+</body>
+</html>
